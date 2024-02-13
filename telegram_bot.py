@@ -16,7 +16,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text="I am finally awake... 1000 years I slumbered... What is your bidding, my liege?")
 
 async def paymo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pay = calculate_pay()
+    #if a parameter is passd, it is the previous period
+    previous_period = True
+    if len(context.args) > 0:
+        if context.args[0] == "current":
+            previous_period = False
+    pay = calculate_pay(previous_period=previous_period, use_est=False)
     await context.bot.send_message(chat_id=update.effective_chat.id, text=pay)
 
 if __name__ == '__main__':
