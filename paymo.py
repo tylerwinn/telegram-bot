@@ -60,49 +60,32 @@ def get_time_entries(previous_period=False, use_est=False):
     data = response.json()
     return data
 
-previous_period = sys.argv[1] if len(sys.argv) > 1 else False
-use_est = sys.argv[2] if len(sys.argv) > 2 else False
+def calculate_pay(previous_period=False, use_est=False):
+    output = ""
+    time_entries = get_time_entries(previous_period=previous_period, use_est=use_est)
+    my_paymo_id = get_my_id()
+    total_duration_seconds = sum(entry['duration'] for entry in time_entries['entries'] if entry['user_id'] == my_paymo_id)
+    hours = total_duration_seconds // 3600
+    minutes = (total_duration_seconds % 3600) // 60
+    seconds = total_duration_seconds % 60
+    formatted_duration = f"{hours:02}:{minutes:02}:{seconds:02}"
+    overtime_seconds = max(total_duration_seconds - (40 * 3600), 0)
+    overtime_hours = overtime_seconds / 3600
+    base_weekly_pay = float(os.getenv('BASE_WEEKLY_PAY'))
+    overtime_rate = float(os.getenv('OVERTIME_RATE'))
+    tax_rate = float(os.getenv('TAX_RATE'))
+    gross_overtime_pay = overtime_hours * overtime_rate
+    total_gross_pay = base_weekly_pay + gross_overtime_pay
+    total_tax_deduction = total_gross_pay * tax_rate
+    net_pay = total_gross_pay - total_tax_deduction
 
+    # Append information to the output string
+    output += f"Base Weekly Pay (Gross): ${base_weekly_pay:.2f}\n"
+    output += f"Total Duration: {formatted_duration}\n"
+    output += f"Overtime Hours: {overtime_hours:.2f} hours\n"
+    output += f"Gross Overtime Pay: ${gross_overtime_pay:.2f}\n"
+    output += f"Total Gross Pay (Base + Overtime): ${total_gross_pay:.2f}\n"
+    output += f"Total Tax Deduction (@ {tax_rate*100}% for Base + Overtime): ${total_tax_deduction:.2f}\n"
+    output += f"Estimated Net Pay (After Tax): ${net_pay:.2f}"
 
-time_entries = get_time_entries(previous_period=previous_period, use_est=use_est)
-
-my_paymo_id = get_my_id()
-
-# Sum only the durations for entries matching 'my_paymo_id'
-total_duration_seconds = sum(entry['duration'] for entry in time_entries['entries'] if entry['user_id'] == my_paymo_id)
-
-# Convert total duration from seconds to hours, minutes, and seconds
-hours = total_duration_seconds // 3600
-minutes = (total_duration_seconds % 3600) // 60
-seconds = total_duration_seconds % 60
-
-# Format the result as HH:MM:SS
-formatted_duration = f"{hours:02}:{minutes:02}:{seconds:02}"
-
-# Calculate overtime: seconds beyond 40 hours (14400 seconds)
-overtime_seconds = max(total_duration_seconds - (40 * 3600), 0)
-overtime_hours = overtime_seconds / 3600
-
-base_weekly_pay = float(os.getenv('BASE_WEEKLY_PAY'))
-overtime_rate = float(os.getenv('OVERTIME_RATE'))
-tax_rate = float(os.getenv('TAX_RATE'))
-
-# Continue with the overtime hours calculation as before
-gross_overtime_pay = overtime_hours * overtime_rate
-
-# Calculate total gross pay (base weekly pay + gross overtime pay)
-total_gross_pay = base_weekly_pay + gross_overtime_pay
-
-# Calculate the tax deduction for total gross pay
-total_tax_deduction = total_gross_pay * tax_rate
-
-# Calculate net pay (total gross pay - total tax deduction)
-net_pay = total_gross_pay - total_tax_deduction
-
-print("Base Weekly Pay (Gross):", f"${base_weekly_pay:.2f}")
-print("Total Duration:", formatted_duration)
-print(f"Overtime Hours: {overtime_hours:.2f} hours")
-print(f"Gross Overtime Pay: ${gross_overtime_pay:.2f}")
-print(f"Total Gross Pay (Base + Overtime): ${total_gross_pay:.2f}")
-print(f"Total Tax Deduction (@ {tax_rate*100}% for Base + Overtime): ${total_tax_deduction:.2f}")
-print(f"Estimated Net Pay (After Tax): ${net_pay:.2f}")
+    return output
