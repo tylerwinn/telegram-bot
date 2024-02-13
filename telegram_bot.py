@@ -25,7 +25,7 @@ async def paymo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=update.effective_chat.id, text=pay)
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
+    application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
     
     start_handler = CommandHandler('start', start)
     paymo_handler = CommandHandler('paymo', paymo)
